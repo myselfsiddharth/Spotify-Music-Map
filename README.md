@@ -229,6 +229,17 @@ In short:
 
 Security issues: see [SECURITY.md](SECURITY.md) (do not file public issues for vulnerabilities).
 
+### Automation on this repo
+
+- **CI** &mdash; runs tests on every PR
+- **CodeQL** &mdash; security analysis for Python and JavaScript
+- **Dependency review** &mdash; blocks high-severity dependency changes on PRs
+- **Dependabot** &mdash; weekly dependency and Actions updates
+- **Release Drafter** &mdash; keeps a draft release notes PR changelog
+- **Stale bot** &mdash; closes inactive issues/PRs (security and pinned issues are exempt)
+- **Labeler** &mdash; auto-labels PRs by changed paths
+- **First interaction** &mdash; greets first-time contributors
+
 ---
 
 ## Credits & licenses

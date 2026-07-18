@@ -1,0 +1,29 @@
+name: First interaction
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  greeting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-message: |
+            Thanks for opening an issue on Sonic Cartography.
+
+            Please make sure you searched existing issues first, and never share secrets or personal Spotify data.
+            Contribution guide: https://github.com/myselfsiddharth/Spotify-Music-Map/blob/main/CONTRIBUTING.md
+          pr-message: |
+            Thanks for your first pull request.
+
+            Please run tests and make sure your solution works (`pytest`, then a quick manual check in the app) before requesting review.
+            Guide: https://github.com/myselfsiddharth/Spotify-Music-Map/blob/main/CONTRIBUTING.md

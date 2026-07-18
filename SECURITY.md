@@ -8,9 +8,11 @@ Security fixes are applied to the latest code on the `main` branch.
 
 Please **do not** open a public GitHub issue for security vulnerabilities.
 
+Private vulnerability reporting is enabled on this repository.
+
 Instead, report privately via one of these options:
 
-1. [GitHub Security Advisories](https://github.com/myselfsiddharth/Spotify-Music-Map/security/advisories/new) (preferred)
+1. [GitHub Security Advisories / private vulnerability reporting](https://github.com/myselfsiddharth/Spotify-Music-Map/security/advisories/new) (preferred)
 2. Email the maintainer through the contact listed on their [GitHub profile](https://github.com/myselfsiddharth)
 
 Include:

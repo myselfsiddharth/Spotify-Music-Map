@@ -1,0 +1,30 @@
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**/*"
+          - "*.md"
+          - "CONTRIBUTING.md"
+          - "SECURITY.md"
+          - "CODE_OF_CONDUCT.md"
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "static/**/*"
+          - "sonic-cartography.html"
+
+python:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "app.py"
+          - "wsgi.py"
+          - "spotify_origins.py"
+          - "requirements*.txt"
+          - "tests/**/*"
+          - "pytest.ini"
+
+github_actions:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**/*"
+          - ".github/dependabot.yml"
