@@ -54,6 +54,7 @@
     </button>
     <div class="topbar-actions">
       <span class="status-pill" id="statusPill" role="status">Awaiting data</span>
+      <button class="icon-btn" id="shareBtn" type="button" aria-label="Share your map"><i data-lucide="share-2"></i></button>
       <button class="icon-btn" id="accountBtn" type="button" aria-label="Account and settings"><i data-lucide="user-round"></i></button>
     </div>
   </header>
@@ -149,6 +150,38 @@
           <input type="file" id="csvInput" accept=".csv,text/csv" multiple hidden>
         </label>
         <p class="import-csv-status" id="csvImportStatus" role="status"></p>
+      </div>
+    </div>
+  </aside>
+
+  <div class="panel-backdrop" id="shareBackdrop"></div>
+  <aside class="side-panel share-panel" id="sharePanel" aria-label="Share your map" aria-hidden="true" hidden>
+    <div class="panel-header">
+      <h2>Share your map</h2>
+      <button class="icon-btn" id="shareClose" type="button" aria-label="Close share panel"><i data-lucide="x"></i></button>
+    </div>
+    <div class="panel-body">
+      <div class="share-preview" id="sharePreview">
+        <div class="share-preview-placeholder">Generating preview…</div>
+      </div>
+      <div class="share-options">
+        <label class="share-toggle">
+          <input type="checkbox" id="shareStatsToggle" checked>
+          <span>Include stats overlay</span>
+        </label>
+      </div>
+      <div class="share-stats-content" id="shareStatsContent"></div>
+      <div class="share-actions">
+        <button class="btn primary" id="shareDownloadBtn" type="button">
+          <i data-lucide="download" aria-hidden="true"></i> Download image
+        </button>
+        <button class="btn ghost" id="shareLinkBtn" type="button">
+          <i data-lucide="link" aria-hidden="true"></i> Create share link
+        </button>
+      </div>
+      <div class="share-link-row" id="shareLinkRow" style="display:none">
+        <input class="share-link-input" id="shareLinkInput" type="text" readonly aria-label="Share link">
+        <button class="btn ghost share-copy-btn" id="shareCopyBtn" type="button">Copy</button>
       </div>
     </div>
   </aside>
