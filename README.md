@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/demo.gif" alt="Sonic Cartography globe spinning with genre-colored artist clusters" width="800">
+  <img src="docs/assets/demo.gif" alt="Zooming into a region on the Sonic Cartography globe and opening an artist detail card" width="800">
 </p>
 
 # Sonic Cartography
