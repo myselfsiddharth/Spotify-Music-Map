@@ -1,3 +1,4 @@
+import base64
 import csv
 import io
 import json
@@ -40,6 +41,8 @@ BASE_DIR = Path(__file__).parent
 CACHE_PATH = BASE_DIR / "origins_cache.json"
 LIBRARY_CACHE_PATH = BASE_DIR / "library_cache.json"
 LIKED_INDEX_PATH = BASE_DIR / "liked_tracks_index.json"
+SHARES_DIR = BASE_DIR / "shares"
+SHARES_DIR.mkdir(exist_ok=True)
 
 SPOTIFY_SCOPES = (
     "user-top-read playlist-read-private playlist-read-collaborative user-library-read"
@@ -2550,6 +2553,91 @@ def liked_track_for_artist():
                 }
             ), 429
         return jsonify({"error": str(e)}), 500
+
+
+@app.post("/api/share")
+def api_share():
+    data = request.get_json(force=True)
+    image_data_url = data.get("image")
+    stats = data.get("stats", {})
+    item_count = data.get("itemCount", 0)
+    country_count = data.get("countryCount", 0)
+    title = data.get("title") or "My Spotify Music Map"
+
+    if not image_data_url:
+        return jsonify({"error": "image is required"}), 400
+
+    share_id = secrets.token_urlsafe(10)
+
+    # Decode the base64 data URL and write the PNG file
+    if "," in image_data_url:
+        image_b64 = image_data_url.split(",", 1)[1]
+    else:
+        image_b64 = image_data_url
+    image_bytes = base64.b64decode(image_b64)
+    (SHARES_DIR / f"{share_id}.png").write_bytes(image_bytes)
+
+    # Save metadata
+    metadata = {
+        "id": share_id,
+        "stats": stats,
+        "itemCount": item_count,
+        "countryCount": country_count,
+        "title": title,
+        "created_at": time.time(),
+    }
+    (SHARES_DIR / f"{share_id}.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    return jsonify({"url": f"/share/{share_id}", "id": share_id})
+
+
+@app.get("/share/<share_id>")
+def share_page(share_id):
+    meta_path = SHARES_DIR / f"{share_id}.json"
+    if not meta_path.exists():
+        return jsonify({"error": "Share not found"}), 404
+
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    title = meta.get("title", "My Spotify Music Map")
+    item_count = meta.get("itemCount", 0)
+    country_count = meta.get("countryCount", 0)
+    description = f"{item_count} artists from {country_count} countries"
+    og_image = request.host_url.rstrip("/") + f"/share/{share_id}/og.png"
+
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{title}</title>
+    <meta property="og:title" content="{title}">
+    <meta property="og:description" content="{description}">
+    <meta property="og:image" content="{og_image}">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{title}">
+    <meta name="twitter:description" content="{description}">
+    <meta name="twitter:image" content="{og_image}">
+    <meta http-equiv="refresh" content="1;url=/?shared={share_id}">
+</head>
+<body>
+    <p>Redirecting to map&hellip;</p>
+</body>
+</html>"""
+
+    resp = make_response(html)
+    resp.headers["Content-Type"] = "text/html; charset=utf-8"
+    return resp
+
+
+@app.get("/share/<share_id>/og.png")
+def share_og_image(share_id):
+    image_path = SHARES_DIR / f"{share_id}.png"
+    if not image_path.exists():
+        return jsonify({"error": "Image not found"}), 404
+
+    return send_file(image_path, mimetype="image/png")
 
 
 if __name__ == "__main__":
