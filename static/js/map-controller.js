@@ -1185,6 +1185,7 @@ export function createMapController(container, land, callbacks = {}) {
       minZoom: MIN_ZOOM,
       maxZoom: MAX_ZOOM,
       antialias: false,
+      preserveDrawingBuffer: true,
       attributionControl: false,
       fadeDuration: isSatellite || reducedMotion ? 0 : 200,
       renderWorldCopies: true,
@@ -1445,6 +1446,10 @@ export function createMapController(container, land, callbacks = {}) {
 
     recenterUser() {
       if (userLocation) flyTo(userLocation.lng, userLocation.lat, Math.max(view.zoom, 6));
+    },
+
+    getCanvas() {
+      return map?.getCanvas() || null;
     },
 
     // Main.js calls this from onViewChange. Emitting here would recurse, so the
