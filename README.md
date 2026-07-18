@@ -9,6 +9,22 @@
 
 **See where your music comes from.** Sonic Cartography connects to your Spotify library and maps every artist to their real-world origin&mdash;birthplace for solo artists, formation city for bands&mdash;on a beautiful interactive globe.
 
+<p align="center">
+  <a href="#quick-start"><img src="https://img.shields.io/badge/%E2%96%B6_Try_it_now-1DB954?style=for-the-badge" alt="Try it now"></a>
+</p>
+
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="Sonic Cartography globe spinning with genre-colored artist clusters" width="720">
+</p>
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/assets/globe-view.png" alt="Globe view"><br><sub><b>Globe view</b></sub></td>
+    <td align="center" width="33%"><img src="docs/assets/cluster-view.png" alt="Cluster view"><br><sub><b>Cluster view</b></sub></td>
+    <td align="center" width="33%"><img src="docs/assets/artist-detail.png" alt="Artist detail card"><br><sub><b>Artist detail card</b></sub></td>
+  </tr>
+</table>
+
 ---
 
 ## What it does
@@ -122,6 +138,7 @@ SpotifyMap/
 ├── wsgi.py                       # Gunicorn entrypoint
 ├── requirements.txt              # Python dependencies
 ├── .env.example                  # Environment template
+├── docs/assets/                  # README screenshots & demo GIF
 ├── static/
 │   ├── css/
 │   │   └── sonic-cartography.css # Responsive styles & themes
