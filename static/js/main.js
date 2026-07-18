@@ -23,6 +23,7 @@ import {
 import { createMapController } from "./map-controller.js";
 import { createUI } from "./ui.js";
 import { createAuth } from "./auth.js";
+import { createShare } from "./share.js";
 
 let landData = null;
 
@@ -369,6 +370,25 @@ export async function bootstrap() {
     (on) => map.setView({ arcs: on }),
     (on) => map.setView({ spin: on })
   );
+
+  const share = createShare(
+    () => map.getCanvas(),
+    getData,
+    {
+      modal: document.getElementById("sharePanel"),
+      preview: document.getElementById("sharePreview"),
+      statsToggle: document.getElementById("shareStatsToggle"),
+      statsContent: document.getElementById("shareStatsContent"),
+      downloadBtn: document.getElementById("shareDownloadBtn"),
+      linkBtn: document.getElementById("shareLinkBtn"),
+      linkInput: document.getElementById("shareLinkInput"),
+      linkRow: document.getElementById("shareLinkRow"),
+      copyBtn: document.getElementById("shareCopyBtn"),
+      closeBtn: document.getElementById("shareClose"),
+      backdrop: document.getElementById("shareBackdrop"),
+    }
+  );
+  document.getElementById("shareBtn")?.addEventListener("click", () => share.openModal());
 
   map.start();
   subscribe(refresh);
