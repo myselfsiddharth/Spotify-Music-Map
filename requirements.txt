@@ -1,0 +1,5 @@
+Flask
+gunicorn
+spotipy
+requests
+python-dotenv

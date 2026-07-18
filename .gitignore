@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+origins_cache.json
+library_cache.json
+liked_tracks_index.json
+.cache
+.venv/
+venv/

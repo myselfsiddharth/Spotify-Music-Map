@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0f">
+  <title>Sonic Cartography</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet">
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
+  <link rel="stylesheet" href="/static/css/sonic-cartography.css">
+</head>
+<body>
+  <a class="skip-link" href="#resultsList">Skip to playlists</a>
+
+  <main id="stage" aria-label="Music origins explorer">
+    <div id="c" role="region" aria-label="Interactive map of artist origins"></div>
+  </main>
+
+  <div class="login-overlay" id="loginOverlay">
+    <section class="login-card">
+      <div class="login-brand">
+        <span class="brand-mark"><i data-lucide="audio-waveform"></i></span>
+        <span>Sonic Cartography</span>
+      </div>
+      <h2>Map your sound.</h2>
+      <p>See where the artists in your Spotify library come from, then explore your taste across the world.</p>
+      <button class="spotify-btn" id="overlayLoginBtn" type="button">
+        <i data-lucide="music-2"></i><span>Connect with Spotify</span>
+      </button>
+      <label class="spotify-btn secondary-import" id="overlayCsvLabel">
+        <i data-lucide="file-spreadsheet"></i><span>Import Exportify CSV</span>
+        <input type="file" id="overlayCsvInput" accept=".csv,text/csv" multiple hidden>
+      </label>
+      <div class="login-error" id="loginError" role="alert" style="display:none"></div>
+      <div class="sync-progress" id="syncProgress" role="status" style="display:none"></div>
+      <small>Connect Spotify, then <strong>Exportify &amp; map</strong> to pull playlists as CSV and resolve artist origins. Or import CSVs from <a href="https://exportify.net" target="_blank" rel="noopener">exportify.net</a>.</small>
+    </section>
+  </div>
+
+  <header class="topbar" aria-label="Map search">
+    <div class="brand-mark" aria-label="Sonic Cartography"><i data-lucide="audio-waveform"></i></div>
+    <div class="topbar-search">
+      <i class="search-icon" data-lucide="search" aria-hidden="true"></i>
+      <label class="sr-only" for="searchInput">Search artists and locations</label>
+      <input class="search-input" id="searchInput" type="search" placeholder="Search artists, playlists, cities…" autocomplete="off">
+      <div class="search-dropdown" id="searchDropdown" role="listbox" aria-label="Search results"></div>
+    </div>
+    <button class="search-filter-btn" id="filterBtn" type="button" aria-expanded="false" aria-controls="filterPanel" aria-label="Filter and sort">
+      <i data-lucide="sliders-horizontal"></i><span class="badge" id="filterBadge" style="display:none">0</span>
+    </button>
+    <div class="topbar-actions">
+      <span class="status-pill" id="statusPill" role="status">Awaiting data</span>
+      <button class="icon-btn" id="accountBtn" type="button" aria-label="Account and settings"><i data-lucide="user-round"></i></button>
+    </div>
+  </header>
+
+  <div class="active-filters" id="activeFilters" aria-live="polite"></div>
+
+  <nav class="toolbar-left" aria-label="Map tools">
+    <button class="toolbar-btn" id="resultsBtn" type="button" aria-expanded="true" aria-controls="resultsPanel">
+      <i data-lucide="list-music"></i><span>Playlists</span>
+    </button>
+  </nav>
+
+  <div class="map-controls" role="group" aria-label="Zoom and navigation">
+    <button class="icon-btn" id="zoomInBtn" type="button" aria-label="Zoom in"><i data-lucide="plus"></i></button>
+    <button class="icon-btn" id="zoomOutBtn" type="button" aria-label="Zoom out"><i data-lucide="minus"></i></button>
+    <button class="icon-btn" id="compassBtn" type="button" aria-label="Reset orientation"><i data-lucide="compass"></i></button>
+    <button class="icon-btn" id="locateBtn" type="button" aria-label="Center on your location"><i data-lucide="locate-fixed"></i></button>
+    <button class="icon-btn" id="fitBtn" type="button" aria-label="Fit all artists in view"><i data-lucide="scan"></i></button>
+    <button class="icon-btn" id="fullscreenBtn" type="button" aria-label="Toggle fullscreen"><i data-lucide="maximize"></i></button>
+  </div>
+
+  <details class="layers-menu">
+    <summary><i data-lucide="layers-3"></i><span>Layers</span><i data-lucide="chevron-up" class="layers-chevron"></i></summary>
+    <div class="map-style-selector" id="styleSelector" role="group" aria-label="Map style">
+      <button class="style-thumb" type="button" data-style="normal" aria-pressed="false"><span class="style-preview normal"></span>Explore</button>
+      <button class="style-thumb" type="button" data-style="satellite" aria-pressed="true"><span class="style-preview satellite"></span>Satellite</button>
+      <button class="style-thumb" type="button" data-style="minimal" aria-pressed="false"><span class="style-preview minimal"></span>Clean</button>
+    </div>
+  </details>
+
+  <div class="scale-bar" id="scaleBar" aria-hidden="true">
+    <span class="scale-line" id="scaleLine"></span><span class="scale-label">—</span>
+  </div>
+  <div class="view-hint" id="viewHint">Drag to spin · Scroll to zoom</div>
+  <div class="mobile-attribution" aria-label="Map attribution">
+    <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a>
+    <span>·</span>
+    <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a>
+    <span>·</span>
+    <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>
+  </div>
+
+  <div class="panel-backdrop" id="filterBackdrop"></div>
+  <aside class="side-panel" id="filterPanel" aria-label="Filter and sort" aria-hidden="true">
+    <div class="panel-header">
+      <h2>Filter &amp; sort</h2>
+      <button class="icon-btn" id="filterClose" type="button" aria-label="Close filters"><i data-lucide="x"></i></button>
+    </div>
+    <div class="panel-scroll">
+      <div class="filter-essentials">
+        <div class="filter-sort-block">
+          <div class="filter-field-label">
+            <span>Sort map by</span>
+            <span class="filter-field-hint">Live — applies immediately</span>
+          </div>
+          <select class="sort-select sort-select-lg" id="sortSelect" aria-label="Sort artists on map"></select>
+        </div>
+      </div>
+      <div class="panel-body" id="filterBody"></div>
+    </div>
+    <div class="panel-footer">
+      <button class="btn ghost" id="filterClear" type="button">Clear all</button>
+      <button class="btn primary" id="filterApply" type="button">Apply filters</button>
+    </div>
+  </aside>
+
+  <div class="panel-backdrop" id="accountBackdrop"></div>
+  <aside class="side-panel account-panel" id="accountPanel" aria-label="Account" aria-hidden="true">
+    <div class="panel-header">
+      <h2>Account</h2>
+      <button class="icon-btn" id="accountClose" type="button" aria-label="Close account panel"><i data-lucide="x"></i></button>
+    </div>
+    <div class="panel-body">
+      <p class="account-status" id="authStatus">Not connected</p>
+      <div class="btnrow">
+        <button class="actionbtn primary" id="spotifyLoginBtn" type="button">Connect Spotify</button>
+        <button class="actionbtn" id="spotifySyncBtn" type="button" style="display:none">Sync library</button>
+        <button class="actionbtn" id="spotifyPullBtn" type="button" style="display:none">Exportify &amp; map</button>
+        <button class="actionbtn warn" id="spotifyLogoutBtn" type="button" style="display:none">Disconnect</button>
+      </div>
+      <div class="switchrow"><span>Arcs to home</span><button class="sw" id="arcSw" type="button" role="switch" aria-checked="false"><span></span></button></div>
+      <div class="switchrow"><span>Auto-spin globe</span><button class="sw" id="spinSw" type="button" role="switch" aria-checked="false"><span></span></button></div>
+      <label class="loadbtn">Import JSON backup<input type="file" id="fileInput" accept="application/json,.json" hidden></label>
+      <div class="import-csv-block">
+        <p class="import-csv-title">Exportify playlists</p>
+        <p class="import-csv-help">
+          <strong>Exportify &amp; map</strong> fetches tracks like
+          <a href="https://github.com/pavelkomarov/exportify" target="_blank" rel="noopener">Exportify</a>,
+          builds CSV, then resolves artist locations on the map.
+          You can also upload CSVs from <a href="https://exportify.net" target="_blank" rel="noopener">exportify.net</a>.
+        </p>
+        <label class="loadbtn primary-load">Import Exportify CSV
+          <input type="file" id="csvInput" accept=".csv,text/csv" multiple hidden>
+        </label>
+        <p class="import-csv-status" id="csvImportStatus" role="status"></p>
+      </div>
+    </div>
+  </aside>
+
+  <aside class="results-panel open" id="resultsPanel" aria-label="Your playlists">
+    <button class="sheet-handle" id="resultsHandle" type="button" aria-label="Expand or collapse playlists"><span></span></button>
+    <div class="results-header">
+      <h1>Your playlists</h1>
+      <span class="results-count" id="resultsCount">0 playlists</span>
+      <button class="icon-btn" id="resultsClose" type="button" aria-label="Close playlists"><i data-lucide="panel-left-close"></i></button>
+    </div>
+    <div class="results-list" id="resultsList" role="list" tabindex="-1"></div>
+  </aside>
+
+  <article class="detail-card" id="detailCard" aria-live="polite" aria-label="Artist details" aria-hidden="true"></article>
+  <div id="tip" role="tooltip"></div>
+
+  <script type="module">
+    import { bootstrap } from "/static/js/main.js";
+    window.lucide?.createIcons({ attrs: { "stroke-width": 1.9 } });
+    bootstrap();
+  </script>
+</body>
+</html>
