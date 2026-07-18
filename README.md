@@ -1,20 +1,21 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Spotify-1DB954?style=for-the-badge&logo=spotify&logoColor=white" alt="Spotify">
-  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
-  <img src="https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask">
-  <img src="https://img.shields.io/badge/MapLibre-396CB2?style=for-the-badge&logo=maplibre&logoColor=white" alt="MapLibre">
+  <img src="docs/assets/demo.gif" alt="Sonic Cartography globe spinning with genre-colored artist clusters" width="800">
 </p>
 
 # Sonic Cartography
 
-**See where your music comes from.** Sonic Cartography connects to your Spotify library and maps every artist to their real-world origin&mdash;birthplace for solo artists, formation city for bands&mdash;on a beautiful interactive globe.
+**See where your music comes from.**
+
+Your Spotify library, plotted on a living globe&mdash;every artist pinned to the city they came from, colored by genre, clustered as you explore.
+
+⭐ **[Star this repo if you like it](https://github.com/myselfsiddharth/Spotify-Music-Map)**
 
 <p align="center">
   <a href="#quick-start"><img src="https://img.shields.io/badge/%E2%96%B6_Try_it_now-1DB954?style=for-the-badge" alt="Try it now"></a>
-</p>
-
-<p align="center">
-  <img src="docs/assets/demo.gif" alt="Sonic Cartography globe spinning with genre-colored artist clusters" width="720">
+  <img src="https://img.shields.io/badge/Spotify-1DB954?style=for-the-badge&logo=spotify&logoColor=white" alt="Spotify">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask">
+  <img src="https://img.shields.io/badge/MapLibre-396CB2?style=for-the-badge&logo=maplibre&logoColor=white" alt="MapLibre">
 </p>
 
 <table>
@@ -27,22 +28,59 @@
 
 ---
 
-## What it does
+## Features
 
-Connect your Spotify account and watch your taste spread across the world. Every artist in your Liked Songs and playlists gets pinned to the city they came from, colored by genre, and grouped into clusters you can explore.
+- **Interactive globe & map** &mdash; Satellite globe, vector street map, and clean minimal. Zoom from space to street level.
+- **One-click library pull** &mdash; Liked Songs and playlists, with smart rate-limit retry.
+- **Genre-colored markers** &mdash; Hip-Hop, R&B/Soul, Pop, Indie, Rock, Electronic, Jazz, Reggae, Afrobeats, Latin.
+- **Clustering & heatmap** &mdash; Nearby artists group as you zoom; density at a glance.
+- **Search & filter** &mdash; Artist, city, country, playlist, or genre&mdash;combine freely.
+- **Artist detail cards** &mdash; Origin, genre, playlists, and play a liked track in-browser.
+- **Arcs & auto-spin** &mdash; Draw paths to your home, or let the globe spin.
+- **CSV import/export** &mdash; [Exportify](https://exportify.net)-compatible; merge multiple sources.
+- **Responsive** &mdash; Desktop, tablet, and mobile.
 
-### Key features
+---
 
-- **Interactive globe & map** &mdash; Three map styles: satellite globe with atmosphere, vector street map, and clean minimal. Smooth zoom from space down to street level.
-- **Automatic playlist pulling** &mdash; One click fetches your Liked Songs and all owned/collaborative playlists with smart rate-limit retry and backoff.
-- **Genre-colored markers** &mdash; 10 genre buckets (Hip-Hop, R&B/Soul, Pop, Indie, Rock, Electronic, Jazz, Reggae, Afrobeats, Latin) each with a distinct color.
-- **Clustering** &mdash; Nearby artists group into clusters that expand as you zoom in. Heatmap overlay shows density at a glance.
-- **Search & filter** &mdash; Search by artist name, city, country, playlist, or genre. Filter by multiple dimensions simultaneously.
-- **Artist detail cards** &mdash; Click any pin to see the artist's origin, genre, playlists, and play their liked track directly in the browser.
-- **Arc visualization** &mdash; Toggle arcs from each artist's origin to your home location.
-- **Auto-spin globe** &mdash; Hands-free spinning globe to showcase your map.
-- **CSV import/export** &mdash; Import [Exportify](https://exportify.net)-compatible CSVs or export your own. Merge multiple sources onto one map.
-- **Fully responsive** &mdash; Works on desktop, tablet, and mobile with adaptive bottom sheets and panels.
+## Quick start
+
+### Prerequisites
+
+- Python 3.9+
+- A [Spotify Developer](https://developer.spotify.com/dashboard) app
+
+### Setup
+
+```bash
+git clone https://github.com/myselfsiddharth/Spotify-Music-Map.git
+cd Spotify-Music-Map
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env with your Spotify credentials
+```
+
+### Configure your Spotify app
+
+1. Open the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Create an app (or use an existing one)
+3. Add `http://127.0.0.1:5000/api/auth/callback` as a **Redirect URI**
+4. Copy **Client ID** and **Client Secret** into `.env`
+
+### Run
+
+```bash
+python app.py
+```
+
+Open [http://127.0.0.1:5000](http://127.0.0.1:5000) and connect Spotify.
+
+### Production
+
+```bash
+gunicorn wsgi:app --bind 0.0.0.0:5000
+```
+
+Use HTTPS in production so secure session cookies are enforced.
 
 ---
 
@@ -63,56 +101,9 @@ Spotify OAuth  -->  Fetch Liked Songs + Playlist Tracks
 
 1. **Authenticate** with Spotify (OAuth 2.0)
 2. **Pull** Liked Songs and playlist tracks via Spotify Web API with retry/backoff
-3. **Resolve** artist origins via Wikidata SPARQL queries (birthplace for solo artists, formation location for groups)
-4. **Cache** results so future loads are instant
+3. **Resolve** artist origins via Wikidata SPARQL (birthplace for solo artists, formation city for groups)
+4. **Cache** results so return visits are instant
 5. **Render** on a MapLibre GL globe with genre-colored clusters
-
----
-
-## Quick start
-
-### Prerequisites
-
-- Python 3.9+
-- A [Spotify Developer](https://developer.spotify.com/dashboard) app
-
-### Setup
-
-```bash
-# Clone the repo
-git clone https://github.com/myselfsiddharth/Spotify-Music-Map.git
-cd Spotify-Music-Map
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your Spotify credentials
-```
-
-### Configure your Spotify app
-
-1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create a new app (or use an existing one)
-3. Add `http://127.0.0.1:5000/api/auth/callback` as a **Redirect URI**
-4. Copy your **Client ID** and **Client Secret** into `.env`
-
-### Run
-
-```bash
-python app.py
-```
-
-Open [http://127.0.0.1:5000](http://127.0.0.1:5000) and connect your Spotify account.
-
-### Production
-
-```bash
-gunicorn wsgi:app --bind 0.0.0.0:5000
-```
-
-Use HTTPS in production so secure session cookies are enforced.
 
 ---
 
