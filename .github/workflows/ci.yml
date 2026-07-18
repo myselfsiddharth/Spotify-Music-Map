@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run tests
+        env:
+          FLASK_SECRET_KEY: ci-test-secret
+          SPOTIFY_CLIENT_ID: ci-test-client-id
+          SPOTIFY_CLIENT_SECRET: ci-test-client-secret
+          SPOTIFY_REDIRECT_URI: http://127.0.0.1:5000/api/auth/callback
+        run: pytest -q
+
+      - name: Secret scan guard (block common secret files)
+        run: |
+          if git ls-files | grep -E '(^|/)\.env$|\.pem$|credentials\.json$|id_rsa'; then
+            echo "Tracked secret-like files are not allowed"
+            exit 1
+          fi
+          echo "No secret-like tracked files found"

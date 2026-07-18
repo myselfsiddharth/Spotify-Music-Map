@@ -216,6 +216,21 @@ Sonic Cartography reads and writes [Exportify](https://github.com/pavelkomarov/e
 
 ---
 
+## Contributing
+
+Contributions are welcome. Please read **[CONTRIBUTING.md](CONTRIBUTING.md)** before opening a PR.
+
+In short:
+
+1. Fork, branch from `main`, and keep changes focused
+2. **Run tests and make sure your solution works** (`pytest`, then manually verify in the app)
+3. Never commit secrets or personal Spotify/cache data
+4. Follow the [Code of Conduct](CODE_OF_CONDUCT.md)
+
+Security issues: see [SECURITY.md](SECURITY.md) (do not file public issues for vulnerabilities).
+
+---
+
 ## Credits & licenses
 
 - [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js) (BSD-3-Clause)
