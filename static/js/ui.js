@@ -106,6 +106,17 @@ export function createUI(root, handlers) {
     const iframe = embed?.querySelector("iframe");
     if (!playBtn || !embed || !iframe) return;
 
+    const getSafeEmbedSrc = (rawSrc) => {
+      if (!rawSrc) return "";
+      try {
+        const parsed = new URL(rawSrc, window.location.origin);
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return "";
+        return parsed.toString();
+      } catch {
+        return "";
+      }
+    };
+
     playBtn.addEventListener("click", () => {
       const opening = embed.hidden;
       embed.hidden = !opening;
@@ -120,7 +131,8 @@ export function createUI(root, handlers) {
       }
       if (action) action.textContent = opening ? "Now playing" : "Play song";
       if (opening && (!iframe.src || iframe.src === "about:blank" || iframe.getAttribute("src") === "about:blank")) {
-        iframe.src = iframe.dataset.embedSrc || iframe.getAttribute("data-embed-src");
+        const safeEmbedSrc = getSafeEmbedSrc(iframe.dataset.embedSrc || iframe.getAttribute("data-embed-src"));
+        if (safeEmbedSrc) iframe.src = safeEmbedSrc;
       }
       if (opening) {
         requestAnimationFrame(() => {
