@@ -21,12 +21,60 @@
   </main>
 
   <div class="login-overlay" id="loginOverlay">
-    <section class="login-card">
+    <section class="login-card setup-card" id="setupCard" tabindex="-1" hidden>
       <div class="login-brand">
         <span class="brand-mark"><i data-lucide="audio-waveform"></i></span>
         <span>Sonic Cartography</span>
       </div>
-      <h2>Map your sound.</h2>
+      <h2 id="setupCardTitle">Add your Spotify keys.</h2>
+      <p>This app reads your library through a Spotify app that <em>you</em> own, so your listening data never passes through anyone else's account. Setup takes about a minute.</p>
+      <ol class="setup-steps">
+        <li>Open the <a href="https://developer.spotify.com/dashboard" id="setupDashboardLink" target="_blank" rel="noopener">Spotify Developer Dashboard</a> and log in.</li>
+        <li>Click <strong>Create app</strong>. Any name and description will do.</li>
+        <li>
+          Paste this exact <strong>Redirect URI</strong>, and tick <strong>Web API</strong>:
+          <span class="setup-uri">
+            <code id="setupRedirectUri">http://127.0.0.1:5000/api/auth/callback</code>
+            <button class="setup-copy" id="setupCopyBtn" type="button" aria-label="Copy redirect URI">Copy</button>
+          </span>
+        </li>
+        <li>Save, then open <strong>Settings</strong> and copy the <strong>Client ID</strong> and <strong>Client secret</strong> into the fields below.</li>
+      </ol>
+      <form class="setup-form" id="setupForm" autocomplete="off" novalidate>
+        <div class="setup-field">
+          <label for="setupClientId">Client ID</label>
+          <input id="setupClientId" name="client_id" type="text" inputmode="latin"
+                 placeholder="e.g. 4f8a2c1b9d3e4f5a6b7c8d9e0f1a2b3c"
+                 autocomplete="off" autocapitalize="none" spellcheck="false" required>
+        </div>
+        <div class="setup-field">
+          <label for="setupClientSecret">Client secret</label>
+          <div class="setup-secret">
+            <input id="setupClientSecret" name="client_secret" type="password"
+                   placeholder="Click &quot;View client secret&quot; to reveal it"
+                   autocomplete="new-password" autocapitalize="none" spellcheck="false" required>
+            <button class="setup-reveal" id="setupRevealBtn" type="button" aria-pressed="false" aria-label="Show client secret">Show</button>
+          </div>
+        </div>
+        <button class="spotify-btn" id="setupSubmit" type="submit">
+          <i data-lucide="key-round"></i><span>Save keys &amp; continue</span>
+        </button>
+      </form>
+      <div class="setup-actions" id="setupActions" hidden>
+        <button class="setup-link" id="setupBackBtn" type="button">Back to sign-in</button>
+        <button class="setup-link danger" id="setupForgetBtn" type="button" hidden>Forget saved keys</button>
+      </div>
+      <div class="login-error" id="setupError" role="alert" style="display:none"></div>
+      <div class="sync-progress" id="setupStatus" role="status" style="display:none"></div>
+      <small>Your keys stay in this app's session cookie, alongside your Spotify tokens — never committed to the repo, never sent anywhere but Spotify. Stuck? Read the <a href="https://github.com/myselfsiddharth/Spotify-Music-Map#get-your-spotify-api-keys" target="_blank" rel="noopener">setup guide</a>.</small>
+    </section>
+
+    <section class="login-card" id="loginCard" tabindex="-1" hidden>
+      <div class="login-brand">
+        <span class="brand-mark"><i data-lucide="audio-waveform"></i></span>
+        <span>Sonic Cartography</span>
+      </div>
+      <h2 id="loginCardTitle">Map your sound.</h2>
       <p>See where the artists in your Spotify library come from, then explore your taste across the world.</p>
       <button class="spotify-btn" id="overlayLoginBtn" type="button">
         <i data-lucide="music-2"></i><span>Connect with Spotify</span>
@@ -38,6 +86,7 @@
       <div class="login-error" id="loginError" role="alert" style="display:none"></div>
       <div class="sync-progress" id="syncProgress" role="status" style="display:none"></div>
       <small>Connect Spotify, then <strong>Exportify &amp; map</strong> to pull playlists as CSV and resolve artist origins. Or import CSVs from <a href="https://exportify.net" target="_blank" rel="noopener">exportify.net</a>.</small>
+      <button class="setup-link" id="setupChangeBtn" type="button" hidden>Use different Spotify API keys</button>
     </section>
   </div>
 

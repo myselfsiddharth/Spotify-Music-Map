@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+.flask_secret
 __pycache__/
 *.pyc
 *.pyo
@@ -24,3 +25,4 @@ Thumbs.db
 .idea/
 .vscode/
 *.log
+.claude/settings.local.json

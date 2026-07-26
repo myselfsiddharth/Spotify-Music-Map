@@ -63,11 +63,12 @@ export function createAuth(handlers) {
   }
 
   function focusLoginOverlay() {
-    const loginButtonVisible =
-      els.overlayLoginBtn &&
-      !els.overlayLoginBtn.disabled &&
-      els.overlayLoginBtn.style.display !== "none";
-    (loginButtonVisible ? els.overlayLoginBtn : els.overlay)?.focus({ preventScroll: true });
+    // The overlay holds two cards — the API-key setup card and the sign-in card.
+    // Focus whichever one is on screen so its instructions are announced first.
+    const card = Array.from(els.overlay?.querySelectorAll(".login-card") || []).find(
+      (element) => element.getClientRects().length > 0
+    );
+    (card || els.overlay)?.focus({ preventScroll: true });
   }
 
   function setOverlayVisible(visible, { focus = false, animate = true } = {}) {
@@ -722,19 +723,25 @@ export function createAuth(handlers) {
       const reason = params.get("reason");
       if (authResult) window.history.replaceState({}, "", window.location.pathname);
       if (authResult === "failed") {
-        els.loginError.style.display = "";
-        els.loginError.textContent =
+        const message =
           reason === "token_error"
             ? "Spotify login failed. Please try again."
             : reason === "access_denied"
               ? "Permission denied. Please allow access to continue."
               : reason === "invalid_state"
                 ? "Session expired. Please try again."
-                : `Login failed: ${reason || "unknown error"}`;
+                : reason === "missing_credentials"
+                  ? "Add your Spotify API keys before connecting."
+                  : `Login failed: ${reason || "unknown error"}`;
+        // The setup card owns its own error line — don't write into the hidden one
+        if (reason !== "missing_credentials") {
+          els.loginError.style.display = "";
+          els.loginError.textContent = message;
+        }
         setAuthUi(false);
-        return { authed: false, justLoggedIn: false };
+        return { authed: false, justLoggedIn: false, authResult, reason, message };
       }
-      return { authResult, justLoggedIn: authResult === "success" };
+      return { authResult, reason, justLoggedIn: authResult === "success" };
     },
   };
 }

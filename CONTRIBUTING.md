@@ -19,10 +19,12 @@ python -m venv .venv
 # Windows: .venv\Scripts\activate
 # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
-cp .env.example .env
-# Add your Spotify app credentials to .env (use your own Developer app)
 python app.py
 ```
+
+On first launch the app asks for your Spotify API keys in the browser — see
+[Get your Spotify API keys](README.md#get-your-spotify-api-keys). To skip that screen while
+developing, put the same keys in a `.env` (`cp .env.example .env`).
 
 Use your own Spotify Developer app and redirect URI. Do not share credentials in issues or PRs.
 

@@ -23,6 +23,7 @@ import {
 import { createMapController } from "./map-controller.js";
 import { createUI } from "./ui.js";
 import { createAuth } from "./auth.js";
+import { createSetup } from "./setup.js";
 import { createShare } from "./share.js";
 
 let landData = null;
@@ -390,38 +391,62 @@ export async function bootstrap() {
   );
   document.getElementById("shareBtn")?.addEventListener("click", () => share.openModal());
 
+  const setup = createSetup({
+    // Keys accepted — hand off to the normal connect-and-sync flow
+    onConfigured: () => runAuthFlow(),
+    onCleared() {
+      auth.setAuthUi(false);
+      clearData();
+      refresh();
+    },
+  });
+
+  async function runAuthFlow({ justLoggedIn = false } = {}) {
+    const isAuthed = await auth.checkAuth();
+
+    if (isAuthed && justLoggedIn) {
+      auth.unlockUi();
+      auth.loadCached();
+      refresh();
+      // Auto-pull playlists on fresh login — gives users the full map immediately
+      if (!auth.isInRateLimitCooldown()) {
+        await auth.doPull();
+      } else {
+        await auth.doSync(true); // shows cooldown status, keeps cache
+      }
+    } else if (isAuthed) {
+      const hadCache = auth.loadCached();
+      if (hadCache) {
+        auth.unlockUi();
+        refresh();
+        if (!auth.isInRateLimitCooldown()) {
+          auth.doPull();
+        }
+      } else if (!auth.isInRateLimitCooldown()) {
+        auth.unlockUi();
+        await auth.doPull();
+      } else {
+        auth.unlockUi();
+        await auth.doSync(true);
+      }
+    }
+
+    refresh();
+  }
+
   map.start();
   subscribe(refresh);
 
-  const { justLoggedIn } = auth.handleAuthParams();
-  const isAuthed = await auth.checkAuth();
+  const { justLoggedIn, reason, message } = auth.handleAuthParams();
 
-  if (isAuthed && justLoggedIn) {
-    auth.unlockUi();
-    auth.loadCached();
+  // Gate everything behind the user's own Spotify API keys
+  const configured = await setup.refresh();
+  if (!configured) {
+    if (reason === "missing_credentials" && message) setup.showError(message);
+    auth.setAuthUi(false);
     refresh();
-    // Auto-pull playlists on fresh login — gives users the full map immediately
-    if (!auth.isInRateLimitCooldown()) {
-      await auth.doPull();
-    } else {
-      await auth.doSync(true); // shows cooldown status, keeps cache
-    }
-  } else if (isAuthed) {
-    const hadCache = auth.loadCached();
-    if (hadCache) {
-      auth.unlockUi();
-      refresh();
-      if (!auth.isInRateLimitCooldown()) {
-        auth.doPull();
-      }
-    } else if (!auth.isInRateLimitCooldown()) {
-      auth.unlockUi();
-      await auth.doPull();
-    } else {
-      auth.unlockUi();
-      await auth.doSync(true);
-    }
+    return;
   }
 
-  refresh();
+  await runAuthFlow({ justLoggedIn });
 }

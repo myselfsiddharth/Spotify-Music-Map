@@ -44,35 +44,58 @@ Your Spotify library, plotted on a living globe&mdash;every artist pinned to the
 
 ## Quick start
 
+Every user brings their own Spotify API keys — Spotify apps in Development Mode can only be used by accounts their owner has allowlisted, so a shared key would not work for you anyway. Setup takes about a minute, and the app walks you through it on first launch.
+
 ### Prerequisites
 
 - Python 3.9+
-- A [Spotify Developer](https://developer.spotify.com/dashboard) app
+- A free [Spotify account](https://spotify.com) (Premium only matters for in-app playback)
 
-### Setup
+### Install and run
 
 ```bash
 git clone https://github.com/myselfsiddharth/Spotify-Music-Map.git
 cd Spotify-Music-Map
 pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your Spotify credentials
-```
-
-### Configure your Spotify app
-
-1. Open the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create an app (or use an existing one)
-3. Add `http://127.0.0.1:5000/api/auth/callback` as a **Redirect URI**
-4. Copy **Client ID** and **Client Secret** into `.env`
-
-### Run
-
-```bash
 python app.py
 ```
 
-Open [http://127.0.0.1:5000](http://127.0.0.1:5000) and connect Spotify.
+Open [http://127.0.0.1:5000](http://127.0.0.1:5000). The app opens on a setup screen that asks for your Spotify API keys — follow the steps below, paste them in, and it moves straight on to **Connect with Spotify**.
+
+> Use `127.0.0.1`, not `localhost`. Spotify rejects `localhost` redirect URIs, and the two are different origins to your browser.
+
+---
+
+## Get your Spotify API keys
+
+The keys identify *your* copy of the app to Spotify. They are free, take a minute, and nobody else ever sees them.
+
+1. **Open the dashboard.** Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) and log in with your normal Spotify account. Accept the Developer Terms if prompted.
+2. **Create an app.** Click **Create app**. The name and description can be anything (for example, *My Sonic Cartography*).
+3. **Add the Redirect URI.** In the **Redirect URIs** field, paste this exactly, then press **Add**:
+   ```
+   http://127.0.0.1:5000/api/auth/callback
+   ```
+   The setup screen in the app shows the exact URI for your machine — copy it from there if you run on a different port or host. It must match character for character, including `http://` and the trailing path.
+4. **Select the API.** Tick **Web API** under *Which API/SDKs are you planning to use?*
+5. **Save**, then open your new app and click **Settings**.
+6. **Copy the keys.** The **Client ID** is shown on the page. Click **View client secret** to reveal the **Client secret**. Both are 32-character codes.
+7. **Paste them into the app** on the setup screen and click **Save keys & continue**. The app verifies them with Spotify before accepting them, so a typo is caught immediately.
+
+Your keys are held in this app's session cookie — the same place it keeps your Spotify OAuth tokens. They are never written into the repo, never logged, and never sent anywhere except Spotify. Click **Use different Spotify API keys** on the sign-in screen to change or remove them later, and see [SECURITY.md](SECURITY.md) for exactly how they are stored.
+
+### Playing tracks and other accounts
+
+A new Spotify app starts in **Development Mode**, which is all you need for yourself. If you want other people to sign in to your copy, add each of their Spotify accounts under **Settings → User Management** in the dashboard (up to 25).
+
+### Optional: skip the setup screen with a `.env`
+
+If you would rather configure the keys once on the server — useful for a private deployment or a machine you re-clone often — copy the template and fill it in. When these are set, the app starts at the Spotify sign-in screen instead.
+
+```bash
+cp .env.example .env
+# Edit .env with your Spotify credentials
+```
 
 ### Production
 
@@ -80,7 +103,19 @@ Open [http://127.0.0.1:5000](http://127.0.0.1:5000) and connect Spotify.
 gunicorn wsgi:app --bind 0.0.0.0:5000
 ```
 
-Use HTTPS in production so secure session cookies are enforced.
+Use HTTPS in production so secure session cookies are enforced, and set `SPOTIFY_REDIRECT_URI` to your public callback URL.
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| **INVALID_CLIENT: Invalid redirect URI** | The Redirect URI in your Spotify app doesn't match. Copy it from the app's setup screen and paste it into the dashboard exactly, including the port and `/api/auth/callback`. |
+| **Spotify rejected these keys** | The Client ID or secret was mistyped or truncated. Re-copy both from **Settings** on your app's dashboard page. |
+| **Login works, but the map is empty** | Spotify rate-limits new apps aggressively. Wait for the countdown shown in the status bar, or import an [Exportify](https://exportify.net) CSV in the meantime. |
+| **Another account can't log in** | Add it under **Settings → User Management** in your Spotify app. |
+| **Asked for keys again after restart** | Set `FLASK_SECRET_KEY` in `.env`, or let the app keep the `.flask_secret` file it generates in the project root. |
 
 ---
 
@@ -99,7 +134,7 @@ Spotify OAuth  -->  Fetch Liked Songs + Playlist Tracks
                   Cache + Render on MapLibre Globe
 ```
 
-1. **Authenticate** with Spotify (OAuth 2.0)
+1. **Authenticate** with Spotify (OAuth 2.0) using your own app keys
 2. **Pull** Liked Songs and playlist tracks via Spotify Web API with retry/backoff
 3. **Resolve** artist origins via Wikidata SPARQL (birthplace for solo artists, formation city for groups)
 4. **Cache** results so return visits are instant
@@ -109,14 +144,18 @@ Spotify OAuth  -->  Fetch Liked Songs + Playlist Tracks
 
 ## Environment variables
 
+All of these are optional — without them, the app asks for your Spotify keys in the browser and generates a session key on first run.
+
 | Variable | Description |
 |---|---|
-| `FLASK_SECRET_KEY` | Strong random value for session encryption |
-| `SPOTIFY_CLIENT_ID` | From Spotify Developer Dashboard |
-| `SPOTIFY_CLIENT_SECRET` | From Spotify Developer Dashboard |
-| `SPOTIFY_REDIRECT_URI` | Must match your Spotify app settings |
+| `FLASK_SECRET_KEY` | Signs session cookies. Generated once into `.flask_secret` if unset |
+| `SPOTIFY_CLIENT_ID` | From Spotify Developer Dashboard; skips the setup screen |
+| `SPOTIFY_CLIENT_SECRET` | From Spotify Developer Dashboard; skips the setup screen |
+| `SPOTIFY_REDIRECT_URI` | Must match your Spotify app settings. Defaults to the host you open the app on |
 | `MUSICBRAINZ_CONTACT_EMAIL` | Contact email for MusicBrainz API (optional) |
 | `PORT` | Server port (default: 5000) |
+
+Keys entered through the setup screen take precedence over `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET`, and are scoped to one browser session — two people using the same server each use their own Spotify app.
 
 ---
 
@@ -135,6 +174,7 @@ SpotifyMap/
 │   │   └── sonic-cartography.css # Responsive styles & themes
 │   └── js/
 │       ├── main.js               # App bootstrap & state
+│       ├── setup.js              # First-run Spotify API key screen
 │       ├── auth.js               # Spotify auth & data fetching
 │       ├── map-controller.js     # MapLibre globe/map rendering
 │       ├── ui.js                 # Search, filters, panels, detail cards
@@ -183,6 +223,9 @@ SpotifyMap/
 
 | Endpoint | Method | Description |
 |---|---|---|
+| `/api/config/spotify` | GET | Whether API keys are set, and the redirect URI to register |
+| `/api/config/spotify` | POST | Verify and save your Client ID / secret for this session |
+| `/api/config/spotify` | DELETE | Forget saved API keys |
 | `/api/auth/login` | GET | Initiate Spotify OAuth |
 | `/api/auth/callback` | GET | OAuth redirect handler |
 | `/api/auth/me` | GET | Current user profile |

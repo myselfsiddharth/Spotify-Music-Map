@@ -1956,7 +1956,7 @@ body.map-style-satellite.map-zoom-flat #c {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: clamp(24px, 7vw, 100px);
+  padding: clamp(16px, 3vh, 40px) clamp(24px, 7vw, 100px);
   background: linear-gradient(90deg, rgba(10, 10, 15, 0.92) 0%, rgba(10, 10, 15, 0.6) 38%, rgba(10, 10, 15, 0.1) 70%);
   transition: opacity 0.3s, visibility 0.3s;
 }
@@ -2111,6 +2111,209 @@ body.map-style-satellite.map-zoom-flat #c {
   color: var(--green);
   background: rgba(29, 185, 84, 0.1);
   border: 1px solid rgba(29, 185, 84, 0.2);
+}
+
+/* First-run: bring your own Spotify API keys */
+.login-card[hidden],
+.setup-actions[hidden],
+.setup-link[hidden] {
+  display: none;
+}
+
+/* The card is the focus target when the dialog opens — no visible ring for that */
+.login-card:focus,
+.login-card:focus-visible {
+  outline: none;
+}
+
+.setup-card {
+  width: min(470px, calc(100vw - 32px));
+  max-height: 100%; /* the overlay's padding box — scroll inside on short screens */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.setup-card h2 {
+  font-size: clamp(28px, 3.4vw, 36px);
+}
+
+.setup-card > p {
+  margin: 14px 0 20px;
+}
+
+.setup-card em {
+  color: var(--ink);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.setup-steps {
+  margin: 0 0 22px 18px;
+  padding: 0;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.setup-steps li {
+  margin-bottom: 9px;
+  padding-left: 3px;
+}
+
+.setup-steps li::marker {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.setup-steps strong {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.setup-steps a {
+  color: #1ed760;
+  text-decoration: none;
+}
+
+.setup-steps a:hover {
+  text-decoration: underline;
+}
+
+.setup-uri {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.setup-uri code {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.setup-copy,
+.setup-reveal {
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.16s, color 0.16s, border-color 0.16s;
+}
+
+.setup-copy:hover,
+.setup-reveal:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--white);
+}
+
+.setup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.setup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setup-field label {
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.setup-field input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.32);
+  color: var(--white);
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+
+.setup-field input::placeholder {
+  color: var(--faint);
+}
+
+.setup-field input:focus-visible {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.18);
+}
+
+.setup-secret {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setup-secret input {
+  flex: 1;
+  min-width: 0;
+}
+
+.setup-secret .setup-reveal {
+  min-height: 46px;
+}
+
+.setup-form .spotify-btn {
+  margin-top: 4px;
+}
+
+.setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.setup-link {
+  display: block;
+  margin: 14px auto 0;
+  padding: 4px;
+  color: var(--muted);
+  background: none;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color 0.16s;
+}
+
+.setup-actions .setup-link {
+  margin: 0;
+}
+
+.setup-link:hover {
+  color: var(--ink);
+}
+
+.setup-link.danger:hover {
+  color: #ff6b6b;
 }
 
 /* MapLibre music popups */
@@ -2367,6 +2570,8 @@ body.map-style-satellite.map-zoom-flat #c {
 
   .login-brand { margin-bottom: 20px; }
   .login-card h2 { font-size: 32px; }
+  .setup-card h2 { font-size: 27px; }
+  .setup-card > p { margin: 12px 0 16px; }
   .maplibregl-ctrl-bottom-left { left: 8px; bottom: 78px; }
   .maplibregl-ctrl-bottom-right { display: none; }
 

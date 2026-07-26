@@ -8,13 +8,23 @@ import secrets
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import quote, unquote
 
 import requests
 import spotipy
 from dotenv import load_dotenv
-from flask import Flask, jsonify, make_response, redirect, request, send_file, session
+from flask import (
+    Flask,
+    has_request_context,
+    jsonify,
+    make_response,
+    redirect,
+    request,
+    send_file,
+    session,
+)
 from spotipy.exceptions import SpotifyException
 from spotipy.oauth2 import SpotifyOAuth
 
@@ -41,8 +51,15 @@ BASE_DIR = Path(__file__).parent
 CACHE_PATH = BASE_DIR / "origins_cache.json"
 LIBRARY_CACHE_PATH = BASE_DIR / "library_cache.json"
 LIKED_INDEX_PATH = BASE_DIR / "liked_tracks_index.json"
+SECRET_KEY_PATH = BASE_DIR / ".flask_secret"
 SHARES_DIR = BASE_DIR / "shares"
 SHARES_DIR.mkdir(exist_ok=True)
+
+SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
+SPOTIFY_DASHBOARD_URL = "https://developer.spotify.com/dashboard"
+DEFAULT_REDIRECT_URI = "http://127.0.0.1:5000/api/auth/callback"
+# Credentials entered in the UI live here, scoped to one browser session
+CREDENTIALS_SESSION_KEY = "spotify_credentials"
 
 SPOTIFY_SCOPES = (
     "user-top-read playlist-read-private playlist-read-collaborative user-library-read"
@@ -94,26 +111,140 @@ GENRE_RULES = [
 
 WIKIDATA_SPARQL = "https://query.wikidata.org/sparql"
 
+
+def load_or_create_secret_key():
+    """Stable session key so UI-entered API keys survive a server restart.
+
+    FLASK_SECRET_KEY wins when set. Otherwise generate one once and keep it in a
+    gitignored file — a fresh random key on every boot would log everyone out.
+    """
+    configured = (os.environ.get("FLASK_SECRET_KEY") or "").strip()
+    if configured:
+        return configured
+    try:
+        existing = SECRET_KEY_PATH.read_text(encoding="utf-8").strip()
+        if existing:
+            return existing
+    except Exception:
+        pass
+    generated = secrets.token_hex(32)
+    try:
+        SECRET_KEY_PATH.write_text(generated, encoding="utf-8")
+        os.chmod(SECRET_KEY_PATH, 0o600)
+    except Exception:
+        log("[CONFIG] Could not persist a session key — sessions reset on restart.")
+    return generated
+
+
 app = Flask(__name__)
 app.config.update(
-    SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32)),
+    SECRET_KEY=load_or_create_secret_key(),
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") == "production",
     SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
 )
 
 
+def env_credentials():
+    return (
+        (os.environ.get("SPOTIFY_CLIENT_ID") or "").strip(),
+        (os.environ.get("SPOTIFY_CLIENT_SECRET") or "").strip(),
+    )
+
+
+def redirect_uri():
+    """The callback URI the user must register on their Spotify app.
+
+    SPOTIFY_REDIRECT_URI wins when set; otherwise mirror the host the browser is
+    actually on, so the value shown in the setup screen is the one that works.
+    """
+    configured = (os.environ.get("SPOTIFY_REDIRECT_URI") or "").strip()
+    if configured:
+        return configured
+    if has_request_context():
+        return f"{request.url_root.rstrip('/')}/api/auth/callback"
+    return DEFAULT_REDIRECT_URI
+
+
+def spotify_credentials():
+    """Spotify app keys for this request: UI-entered first, then environment."""
+    stored = session.get(CREDENTIALS_SESSION_KEY) if has_request_context() else None
+    if isinstance(stored, dict):
+        client_id = (stored.get("client_id") or "").strip()
+        client_secret = (stored.get("client_secret") or "").strip()
+        if client_id and client_secret:
+            return client_id, client_secret, "session"
+    client_id, client_secret = env_credentials()
+    if client_id and client_secret:
+        return client_id, client_secret, "env"
+    return "", "", None
+
+
+def credentials_configured():
+    client_id, client_secret, _ = spotify_credentials()
+    return bool(client_id and client_secret)
+
+
 def spotify_oauth() -> SpotifyOAuth:
+    client_id, client_secret, _ = spotify_credentials()
     return SpotifyOAuth(
-        client_id=os.environ.get("SPOTIFY_CLIENT_ID"),
-        client_secret=os.environ.get("SPOTIFY_CLIENT_SECRET"),
-        redirect_uri=os.environ.get(
-            "SPOTIFY_REDIRECT_URI", "http://127.0.0.1:5000/api/auth/callback"
-        ),
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri=redirect_uri(),
         scope=SPOTIFY_SCOPES,
         show_dialog=True,
         cache_handler=spotipy.cache_handler.MemoryCacheHandler(),
     )
+
+
+def validate_spotify_credentials(client_id, client_secret):
+    """Prove the keys are real with a client-credentials token request.
+
+    Returns (ok, error_message). This flow needs no user consent, so it is a
+    cheap way to reject typos before sending anyone to the Spotify login page.
+    """
+    try:
+        resp = requests.post(
+            SPOTIFY_TOKEN_URL,
+            data={"grant_type": "client_credentials"},
+            auth=(client_id, client_secret),
+            timeout=15,
+        )
+    except requests.RequestException as e:
+        log(f"[CONFIG] credential check network error: {e}")
+        return False, "Could not reach Spotify. Check your connection and try again."
+
+    if resp.status_code == 200:
+        try:
+            if (resp.json() or {}).get("access_token"):
+                return True, None
+        except ValueError:
+            pass
+        return False, "Spotify returned an unexpected response. Try again."
+
+    if resp.status_code in (400, 401):
+        return False, (
+            "Spotify rejected these keys. Copy the Client ID and Client secret "
+            "again from your app's Settings page."
+        )
+    if resp.status_code == 429:
+        return False, "Spotify is rate limiting this app. Wait a minute and retry."
+    return False, f"Spotify returned HTTP {resp.status_code}. Try again shortly."
+
+
+def credentials_status():
+    client_id, _, source = spotify_credentials()
+    env_id, env_secret = env_credentials()
+    return {
+        "configured": bool(source),
+        "source": source,
+        "clientId": client_id,  # public half of the pair — the secret is never returned
+        "redirectUri": redirect_uri(),
+        "redirectUriLocked": bool((os.environ.get("SPOTIFY_REDIRECT_URI") or "").strip()),
+        "envConfigured": bool(env_id and env_secret),
+        "dashboardUrl": SPOTIFY_DASHBOARD_URL,
+    }
 
 
 def bucket_genre(spotify_genres):
@@ -454,6 +585,8 @@ def probe_spotify_library(sp):
 
 
 def get_spotify_client():
+    if not credentials_configured():
+        return None
     token_info = session.get("token_info")
     if not token_info:
         return None
@@ -935,8 +1068,63 @@ def index():
     return send_file(BASE_DIR / "sonic-cartography.html")
 
 
+@app.get("/api/config/spotify")
+def config_spotify_get():
+    """What the first-run screen needs: are keys set, and which redirect URI to register."""
+    return jsonify(credentials_status())
+
+
+@app.post("/api/config/spotify")
+def config_spotify_save():
+    body = request.get_json(silent=True) or {}
+    client_id = str(body.get("client_id") or body.get("clientId") or "").strip()
+    client_secret = str(body.get("client_secret") or body.get("clientSecret") or "").strip()
+
+    if not client_id or not client_secret:
+        return jsonify({"error": "Enter both your Client ID and Client secret."}), 400
+    if not re.fullmatch(r"[A-Za-z0-9]{16,128}", client_id):
+        return jsonify(
+            {
+                "error": "That Client ID doesn't look right — it's a single "
+                "32-character code with no spaces."
+            }
+        ), 400
+    if not re.fullmatch(r"[A-Za-z0-9\-_]{16,128}", client_secret):
+        return jsonify(
+            {
+                "error": "That Client secret doesn't look right — it's a single "
+                "32-character code with no spaces."
+            }
+        ), 400
+
+    ok, error = validate_spotify_credentials(client_id, client_secret)
+    if not ok:
+        return jsonify({"error": error}), 400
+
+    session[CREDENTIALS_SESSION_KEY] = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+    }
+    session.permanent = True
+    # Any existing token was minted by the previous app — it can't be reused
+    session.pop("token_info", None)
+    session.pop("spotify_user", None)
+    log("[CONFIG] Spotify API keys saved for this browser session")
+    return jsonify(credentials_status())
+
+
+@app.delete("/api/config/spotify")
+def config_spotify_clear():
+    session.pop(CREDENTIALS_SESSION_KEY, None)
+    session.pop("token_info", None)
+    session.pop("spotify_user", None)
+    return jsonify(credentials_status())
+
+
 @app.get("/api/auth/login")
 def auth_login():
+    if not credentials_configured():
+        return redirect("/?auth=failed&reason=missing_credentials")
     oauth = spotify_oauth()
     state = secrets.token_urlsafe(24)
     resp = make_response(redirect(oauth.get_authorize_url(state=state)))
@@ -951,6 +1139,8 @@ def auth_callback():
     error = request.args.get("error")
     if error:
         return redirect(f"/?auth=failed&reason={error}")
+    if not credentials_configured():
+        return redirect("/?auth=failed&reason=missing_credentials")
     code = request.args.get("code")
     state = request.args.get("state")
     saved_state = request.cookies.get("oauth_state")
@@ -962,6 +1152,7 @@ def auth_callback():
     except Exception:
         return redirect("/?auth=failed&reason=token_error")
     session["token_info"] = token_info
+    session.permanent = True
     try:
         sp = spotipy.Spotify(
             auth=token_info["access_token"], requests_timeout=12, retries=0
